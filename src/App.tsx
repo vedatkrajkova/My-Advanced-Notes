@@ -7,6 +7,7 @@ import { startRealtime } from './sync/realtime';
 import { supabase } from './sync/supabase';
 import { NotesPage } from './ui/notes/NotesPage';
 import { Shell } from './ui/Shell';
+import { TasksPage } from './ui/tasks/TasksPage';
 
 function SyncRunner() {
   useEffect(() => {
@@ -29,7 +30,7 @@ export default function App() {
         <Routes>
           <Route element={<Shell />}>
             <Route path="/notes/:noteId?" element={<NotesPage />} />
-            <Route path="/tasks" element={<p>Detyra</p>} />
+            <Route path="/tasks" element={<TasksPage />} />
             <Route path="*" element={<Navigate to="/tasks" replace />} />
           </Route>
         </Routes>
