@@ -1,3 +1,9 @@
+import { AuthGate } from './auth/AuthGate';
+
 export default function App() {
-  return <h1>Shënime dhe detyra</h1>;
+  return (
+    <AuthGate>
+      <h1>Shënime dhe detyra</h1>
+    </AuthGate>
+  );
 }
