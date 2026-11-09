@@ -168,3 +168,4 @@ a { color: var(--accent); }
 .tag { --tag: var(--accent); border: 1px solid var(--tag); background: transparent; color: var(--tag); border-radius: 999px; padding: 2px 10px; font-size: 13px; }
 .tag[aria-pressed='true'] { background: var(--tag); color: #fff; }
 .tagpicker__input { border: 0; background: none; font-size: 13px; padding: 2px 4px; width: 100px; outline: none; color: var(--text-2); }
+.details__note { margin: 0; font-size: 13px; color: var(--warning); }

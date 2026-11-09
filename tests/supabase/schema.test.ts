@@ -80,3 +80,23 @@ test('upsert with an older updated_at does not overwrite a newer row', async () 
   const r2 = await pg.query<{ title: string }>(`select title from notes where id = '${id}'`);
   expect(r2.rows[0].title).toBe('më i ri');
 });
+
+describe('migration 0002 reminded_at', () => {
+  beforeAll(async () => {
+    await pg.exec('reset role;');
+    await pg.exec(readFileSync('supabase/migrations/0002_reminded_at.sql', 'utf8'));
+  });
+
+  test('changing remind_at resets reminded_at; other edits keep it', async () => {
+    await as(A);
+    const id = '33333333-3333-3333-3333-333333333333';
+    await pg.query(`insert into tasks (id, title, sort_key, updated_at, remind_at) values ('${id}', 't', 'a0', '2026-01-01', '2026-01-02T10:00Z')`);
+    await pg.query(`update tasks set reminded_at = now() where id = '${id}'`);
+    await pg.query(`update tasks set title = 'x', updated_at = '2026-01-01T01:00Z' where id = '${id}'`);
+    let r = await pg.query<{ reminded_at: Date | null }>(`select reminded_at from tasks where id = '${id}'`);
+    expect(r.rows[0].reminded_at).not.toBeNull();
+    await pg.query(`update tasks set remind_at = '2026-01-03T10:00Z', updated_at = '2026-01-01T02:00Z' where id = '${id}'`);
+    r = await pg.query<{ reminded_at: Date | null }>(`select reminded_at from tasks where id = '${id}'`);
+    expect(r.rows[0].reminded_at).toBeNull();
+  });
+});

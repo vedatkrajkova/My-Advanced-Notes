@@ -140,3 +140,10 @@ test('non-network failure sets status error', async () => {
   expect(err).toHaveBeenCalled();
   err.mockRestore();
 });
+
+test('push never sends reminded_at (server owns it)', async () => {
+  const a = await create<Note>('notes', noteData);
+  await db.notes.update(a.id, { reminded_at: '2026-01-01T00:00:00Z' } as Partial<Note>);
+  await pushDirty(remote);
+  expect('reminded_at' in remote.upserted[0]).toBe(false);
+});

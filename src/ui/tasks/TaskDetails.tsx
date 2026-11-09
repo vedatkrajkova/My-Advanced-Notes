@@ -2,6 +2,7 @@ import { useState, type KeyboardEvent } from 'react';
 import { softDeleteMany, update } from '../../db/repo';
 import { addSubtask } from '../../domain/taskGroups';
 import type { Priority, Task } from '../../domain/types';
+import { subscribeToPush } from '../../push/subscribe';
 import { TagPicker } from '../tags/TagPicker';
 
 export const PRIORITY_LABELS: Record<Priority, string> = { low: 'I ulët', medium: 'Mesatar', high: 'I lartë' };
@@ -31,8 +32,27 @@ export function TaskDetails({ task, subtaskIds, onClose }: { task: Task; subtask
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
   const [subTitle, setSubTitle] = useState('');
+  const [pushNote, setPushNote] = useState('');
 
   const save = (patch: Partial<Task>) => void update<Task>('tasks', task.id, patch);
+
+  async function setReminder(value: string) {
+    const remind_at = value ? new Date(value).toISOString() : null;
+    save({ remind_at });
+    if (!remind_at) return;
+    try {
+      const result = await subscribeToPush();
+      setPushNote(
+        result === 'denied'
+          ? 'Njoftimet janë të bllokuara në këtë shfletues. Lejoji te cilësimet e faqes që kujtesa të vijë.'
+          : result === 'unsupported'
+            ? 'Ky shfletues nuk mbështet njoftimet. Instalo aplikacionin në Chrome ose Edge.'
+            : '',
+      );
+    } catch {
+      setPushNote('Njoftimet nuk u aktivizuan tani. Provo përsëri kur të kesh internet.');
+    }
+  }
 
   async function onSubKey(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key !== 'Enter') return;
@@ -78,7 +98,7 @@ export function TaskDetails({ task, subtaskIds, onClose }: { task: Task; subtask
           <input
             type="datetime-local"
             value={isoToDateTimeInput(task.remind_at)}
-            onChange={(e) => save({ remind_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
+            onChange={(e) => void setReminder(e.target.value)}
           />
         </label>
         <label>
@@ -92,6 +112,7 @@ export function TaskDetails({ task, subtaskIds, onClose }: { task: Task; subtask
           </select>
         </label>
       </div>
+      {pushNote && <p className="details__note">{pushNote}</p>}
       {!task.parent_id && (
         <input
           aria-label="Nëndetyrë e re"

@@ -54,6 +54,7 @@ function toRemote(row: BaseRow): BaseRow {
   const copy = { ...row } as Record<string, unknown>;
   delete copy.dirty;
   delete copy.server_updated_at;
+  delete copy.reminded_at; // vendoset vetëm nga serveri (send-reminders)
   return copy as unknown as BaseRow;
 }
 
