@@ -9,10 +9,12 @@ export interface AuthApi {
 }
 
 const LAST_USER_KEY = 'last_user_id';
+export const LOCAL_USER_ID = 'local';
 
 export const supabaseAuth: AuthApi = {
   async getSession() {
-    if (!supabase) return null;
+    // Pa Supabase të konfiguruar aplikacioni punon vetëm lokalisht, pa sinkronizim.
+    if (!supabase) return { userId: LOCAL_USER_ID };
     const { data } = await supabase.auth.getSession();
     return data.session ? { userId: data.session.user.id } : null;
   },

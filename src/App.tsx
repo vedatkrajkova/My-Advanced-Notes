@@ -5,6 +5,7 @@ import { getCurrentUser } from './db/repo';
 import { startAutoSync } from './sync/engine';
 import { startRealtime } from './sync/realtime';
 import { supabase } from './sync/supabase';
+import { NotesPage } from './ui/notes/NotesPage';
 import { Shell } from './ui/Shell';
 
 function SyncRunner() {
@@ -27,7 +28,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route element={<Shell />}>
-            <Route path="/notes/:noteId?" element={<p>Shënime</p>} />
+            <Route path="/notes/:noteId?" element={<NotesPage />} />
             <Route path="/tasks" element={<p>Detyra</p>} />
             <Route path="*" element={<Navigate to="/tasks" replace />} />
           </Route>
