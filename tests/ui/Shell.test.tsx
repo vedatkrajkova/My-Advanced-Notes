@@ -32,3 +32,8 @@ test('Shell links to notes and tasks and renders the page', () => {
   expect(tasks[0]).toHaveAttribute('aria-current', 'page');
   expect(screen.getByText('faqja e detyrave')).toBeInTheDocument();
 });
+
+test('SyncIndicator says local-only when sync is not configured', () => {
+  render(<SyncIndicator localOnly />);
+  expect(screen.getByText('vetëm në këtë pajisje')).toBeInTheDocument();
+});
