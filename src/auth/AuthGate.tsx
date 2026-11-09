@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { setCurrentUser } from '../db/repo';
+import { LOCAL_USER_ID, adoptLocalRows, setCurrentUser } from '../db/repo';
 import { supabase } from '../sync/supabase';
 
 export interface AuthApi {
@@ -9,7 +9,6 @@ export interface AuthApi {
 }
 
 const LAST_USER_KEY = 'last_user_id';
-export const LOCAL_USER_ID = 'local';
 
 export const supabaseAuth: AuthApi = {
   async getSession() {
@@ -53,6 +52,7 @@ export function AuthGate({ children, auth = supabaseAuth }: { children: ReactNod
       if (!id && !navigator.onLine) id = rememberedUser();
       if (id) {
         setCurrentUser(id);
+        void adoptLocalRows(id);
         try {
           localStorage.setItem(LAST_USER_KEY, id);
         } catch {

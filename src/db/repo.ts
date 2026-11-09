@@ -77,3 +77,19 @@ export async function list<T extends BaseRow>(name: TableName): Promise<T[]> {
   const rows = (await table(name).toArray()) as unknown as T[];
   return rows.filter((r) => !r.deleted);
 }
+
+export const LOCAL_USER_ID = 'local';
+
+/** Rreshtat e krijuar pa llogari (modaliteti lokal) i kalojnë përdoruesit që sapo hyri. */
+export async function adoptLocalRows(userId: string): Promise<void> {
+  if (userId === LOCAL_USER_ID) return;
+  for (const t of db.tables) {
+    if (t.name === 'meta') continue;
+    await t.toCollection().modify((row: { user_id?: string; dirty?: number }) => {
+      if (row.user_id === LOCAL_USER_ID) {
+        row.user_id = userId;
+        row.dirty = 1;
+      }
+    });
+  }
+}

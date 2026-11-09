@@ -1,5 +1,5 @@
 import { db } from '../../src/db/local';
-import { create, update, softDelete, list, setCurrentUser } from '../../src/db/repo';
+import { create, update, softDelete, list, setCurrentUser, adoptLocalRows } from '../../src/db/repo';
 import type { Note } from '../../src/domain/types';
 
 const noteData = { title: 'A', content: '', parent_id: null, sort_key: 'a0', pinned: false, icon: null };
@@ -36,4 +36,16 @@ test('softDelete hides row from list but keeps it with deleted=true', async () =
   const stored = await db.notes.get(n.id);
   expect(stored?.deleted).toBe(true);
   expect(stored?.dirty).toBe(1);
+});
+
+test('adoptLocalRows gives local-mode rows to the signed-in user and marks them dirty', async () => {
+  setCurrentUser('local');
+  const n = await create<Note>('notes', noteData);
+  await db.notes.update(n.id, { dirty: 0 });
+  setCurrentUser('real-user');
+  const other = await create<Note>('notes', noteData);
+  await adoptLocalRows('real-user');
+  expect((await db.notes.get(n.id))?.user_id).toBe('real-user');
+  expect((await db.notes.get(n.id))?.dirty).toBe(1);
+  expect((await db.notes.get(other.id))?.user_id).toBe('real-user');
 });
