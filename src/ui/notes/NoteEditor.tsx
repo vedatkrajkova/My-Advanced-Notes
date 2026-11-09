@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import { update } from '../../db/repo';
 import type { Note } from '../../domain/types';
+import { TagPicker } from '../tags/TagPicker';
 
 const SAVE_DELAY_MS = 500;
 
@@ -59,6 +60,7 @@ export function NoteEditor({ note, path, onDelete }: { note: Note; path: Note[];
         }}
         onBlur={flush}
       />
+      <TagPicker kind="note" itemId={note.id} />
       {preview ? (
         <div className="markdown">
           <Markdown>{content}</Markdown>

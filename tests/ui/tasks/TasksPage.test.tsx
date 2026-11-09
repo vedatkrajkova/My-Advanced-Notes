@@ -83,3 +83,14 @@ test('due dates use Albanian month names', async () => {
   expect(formatShortDate(new Date(2026, 10, 9))).toBe('9 nën');
   expect(formatShortDate(new Date(2026, 0, 1))).toBe('1 jan');
 });
+
+test('tag filter shows only tasks with that tag', async () => {
+  const tag = await create<import('../../../src/domain/types').Tag>('tags', { name: 'Urgjente', color: '#d64545' });
+  const a = await create<Task>('tasks', { ...base, list_id: null, title: 'Me etiketë' });
+  await create<Task>('tasks', { ...base, list_id: null, title: 'Pa etiketë' });
+  await create<import('../../../src/domain/types').TaskTag>('task_tags', { task_id: a.id, tag_id: tag.id });
+  render(<TasksPage />);
+  await userEvent.click(await screen.findByRole('button', { name: 'Urgjente' }));
+  await waitFor(() => expect(screen.queryByText('Pa etiketë')).not.toBeInTheDocument());
+  expect(screen.getByText('Me etiketë')).toBeInTheDocument();
+});

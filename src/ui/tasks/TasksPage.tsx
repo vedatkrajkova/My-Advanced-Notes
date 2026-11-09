@@ -6,6 +6,7 @@ import { compareSiblings } from '../../domain/notesTree';
 import { keyForIndex } from '../../domain/sortKey';
 import { GROUP_LABELS, groupTasks, subtasksOf } from '../../domain/taskGroups';
 import type { Task, TaskList } from '../../domain/types';
+import { filterByTag, TagFilter } from '../tags/TagFilter';
 import { dateInputToIso, isoToDateInput } from './TaskDetails';
 import { TaskItem } from './TaskItem';
 import { ALL_LISTS, TaskLists } from './TaskLists';
@@ -32,6 +33,9 @@ function dueFromChoice(choice: DueChoice, now: Date): string | null {
 export function TasksPage() {
   const tasks = useLiveQuery(() => db.tasks.toArray(), []);
   const lists = useLiveQuery(() => db.task_lists.toArray(), []);
+  const tags = useLiveQuery(() => db.tags.toArray(), []);
+  const taskTags = useLiveQuery(() => db.task_tags.toArray(), []);
+  const [tagId, setTagId] = useState<string | null>(null);
   const [selected, setSelectedState] = useState(readSelected);
   const [openId, setOpenId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -44,7 +48,8 @@ export function TasksPage() {
   const current = listExists ? selected : ALL_LISTS;
 
   const all = useMemo(() => (tasks ?? []).filter((t) => !t.deleted), [tasks]);
-  const visible = current === ALL_LISTS ? all : all.filter((t) => t.list_id === current);
+  const inList = current === ALL_LISTS ? all : all.filter((t) => t.list_id === current);
+  const visible = filterByTag(inList, taskTags ?? [], tagId, 'task_id');
   const groups = groupTasks(visible, now);
 
   function select(id: string) {
@@ -88,6 +93,7 @@ export function TasksPage() {
   return (
     <div className="tasks">
       <TaskLists lists={liveLists} selected={current} onSelect={select} onCreate={(n) => void createList(n)} />
+      <TagFilter tags={tags ?? []} selectedTagId={tagId} onChange={setTagId} />
       <div className="tasks__body">
         {groups.length === 0 && <p className="empty">Asnjë detyrë këtu. Shto të parën më poshtë.</p>}
         {groups.map((g) => (

@@ -2,6 +2,7 @@ import { useState, type KeyboardEvent } from 'react';
 import { softDeleteMany, update } from '../../db/repo';
 import { addSubtask } from '../../domain/taskGroups';
 import type { Priority, Task } from '../../domain/types';
+import { TagPicker } from '../tags/TagPicker';
 
 export const PRIORITY_LABELS: Record<Priority, string> = { low: 'I ulët', medium: 'Mesatar', high: 'I lartë' };
 
@@ -66,6 +67,7 @@ export function TaskDetails({ task, subtaskIds, onClose }: { task: Task; subtask
         onChange={(e) => setDescription(e.target.value)}
         onBlur={() => description !== task.description && save({ description })}
       />
+      <TagPicker kind="task" itemId={task.id} />
       <div className="details__grid">
         <label>
           <span>Data e afatit</span>

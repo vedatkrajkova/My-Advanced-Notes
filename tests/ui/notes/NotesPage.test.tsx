@@ -76,3 +76,15 @@ test('dropping a note into its own descendant changes nothing', async () => {
   await handleDrop(b.id, 'root');
   expect((await db.notes.get(b.id))?.parent_id).toBeNull();
 });
+
+test('tag filter shows only tagged notes, even when their parent is untagged', async () => {
+  const tag = await create<import('../../../src/domain/types').Tag>('tags', { name: 'Ide', color: '#2f6fed' });
+  const parent = await create<Note>('notes', { ...base, title: 'Prind', parent_id: null });
+  const child = await create<Note>('notes', { ...base, title: 'Fëmijë me etiketë', parent_id: parent.id });
+  await create<import('../../../src/domain/types').NoteTag>('note_tags', { note_id: child.id, tag_id: tag.id });
+  renderAt();
+  await userEvent.click(await screen.findByRole('button', { name: 'Ide' }));
+  const tree = screen.getByRole('tree');
+  await waitFor(() => expect(within(tree).queryByText('Prind')).not.toBeInTheDocument());
+  expect(within(tree).getByText('Fëmijë me etiketë')).toBeInTheDocument();
+});

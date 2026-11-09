@@ -160,3 +160,11 @@ a { color: var(--accent); }
 .quick { display: flex; gap: 8px; }
 .quick input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--bg); }
 .quick select { padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+
+/* Etiketat */
+.tagfilter, .tagpicker { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tagfilter { padding: 8px 16px 0; }
+.notes__side .tagfilter { padding: 4px 4px 8px; }
+.tag { --tag: var(--accent); border: 1px solid var(--tag); background: transparent; color: var(--tag); border-radius: 999px; padding: 2px 10px; font-size: 13px; }
+.tag[aria-pressed='true'] { background: var(--tag); color: #fff; }
+.tagpicker__input { border: 0; background: none; font-size: 13px; padding: 2px 4px; width: 100px; outline: none; color: var(--text-2); }

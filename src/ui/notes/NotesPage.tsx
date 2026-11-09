@@ -7,6 +7,7 @@ import { create } from '../../db/repo';
 import { buildTree, compareSiblings, deleteNoteCascade, moveNote } from '../../domain/notesTree';
 import { keyForIndex } from '../../domain/sortKey';
 import type { Note } from '../../domain/types';
+import { filterByTag, TagFilter } from '../tags/TagFilter';
 import { NoteEditor } from './NoteEditor';
 import { NotesTree } from './NotesTree';
 
@@ -50,9 +51,14 @@ export function NotesPage() {
     useSensor(TouchSensor, { activationConstraint: { delay: 300, tolerance: 8 } }),
   );
 
+  const tags = useLiveQuery(() => db.tags.toArray(), []);
+  const noteTags = useLiveQuery(() => db.note_tags.toArray(), []);
+  const [tagId, setTagId] = useState<string | null>(null);
+
   const live = useMemo(() => (notes ?? []).filter((n) => !n.deleted), [notes]);
   const byId = useMemo(() => new Map(live.map((n) => [n.id, n])), [live]);
-  const tree = useMemo(() => buildTree(live), [live]);
+  // Me filtër, shënimet pa prind të filtruar dalin në rrënjë (shih buildTree).
+  const tree = useMemo(() => buildTree(filterByTag(live, noteTags ?? [], tagId, 'note_id')), [live, noteTags, tagId]);
   const selected = noteId ? byId.get(noteId) : undefined;
   const path = useMemo(() => (selected ? ancestorsOf(byId, selected.id) : []), [byId, selected]);
 
@@ -112,6 +118,7 @@ export function NotesPage() {
   return (
     <div className={`notes${drawerOpen ? ' notes--drawer-open' : ''}`}>
       <aside className="notes__side">
+        <TagFilter tags={tags ?? []} selectedTagId={tagId} onChange={setTagId} />
         <DndContext sensors={sensors} onDragEnd={onDragEnd}>
           <NotesTree
             nodes={tree}
