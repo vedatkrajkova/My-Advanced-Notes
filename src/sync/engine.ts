@@ -15,6 +15,13 @@ export interface RemoteApi {
 
 export const PAGE_SIZE = 1000;
 
+/**
+ * server_updated_at vendoset kur shkruhet rreshti, jo kur bëhet commit. Një transaksion
+ * i ngadaltë mund të bëjë commit pasi kursori ka kaluar përpara, prandaj çdo marrje
+ * rilexon edhe këtë dritare. Ri-zbatimi i një rreshti është i padëmshëm (LWW).
+ */
+export const PULL_OVERLAP_MS = 60_000;
+
 export const supabaseRemote: RemoteApi = {
   async upsert(table, rows) {
     if (!supabase) throw new Error('Supabase nuk është konfiguruar');
@@ -80,7 +87,9 @@ const cursorKey = (t: TableName) => `cursor:${t}`;
 export async function pullChanges(remote: RemoteApi): Promise<void> {
   for (const name of TABLES) {
     const table = db.table<BaseRow, string>(name);
-    let since = (await db.meta.get(cursorKey(name)))?.value ?? null;
+    const saved = (await db.meta.get(cursorKey(name)))?.value ?? null;
+    let since = saved ? new Date(Date.parse(saved) - PULL_OVERLAP_MS).toISOString() : null;
+    let cursor = saved;
     for (;;) {
       const rows = await remote.fetchSince(name, since, PAGE_SIZE);
       if (!rows.length) break;
@@ -92,7 +101,8 @@ export async function pullChanges(remote: RemoteApi): Promise<void> {
           }
         }
         since = rows[rows.length - 1].server_updated_at;
-        await db.meta.put({ key: cursorKey(name), value: since });
+        if (!cursor || Date.parse(since) > Date.parse(cursor)) cursor = since;
+        await db.meta.put({ key: cursorKey(name), value: cursor! });
       });
       if (rows.length < PAGE_SIZE) break;
     }

@@ -42,10 +42,15 @@ function compareInGroup(a: Task, b: Task): number {
   return compareSiblings(a, b);
 }
 
+/**
+ * Nëndetyrat shfaqen nën prindin. Nëse prindi mungon nga lista (fshirë në pajisjen tjetër,
+ * ose i filtruar), nëndetyra shfaqet si detyrë kryesore që të mos zhduket.
+ */
 export function groupTasks(tasks: Task[], now: Date): { key: GroupKey; tasks: Task[] }[] {
+  const liveIds = new Set(tasks.filter((t) => !t.deleted).map((t) => t.id));
   const buckets = new Map<GroupKey, Task[]>();
   for (const task of tasks) {
-    if (task.deleted || task.parent_id) continue;
+    if (task.deleted || (task.parent_id && liveIds.has(task.parent_id))) continue;
     const key = groupOf(task, now);
     buckets.set(key, [...(buckets.get(key) ?? []), task]);
   }

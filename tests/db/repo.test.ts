@@ -49,3 +49,15 @@ test('adoptLocalRows gives local-mode rows to the signed-in user and marks them 
   expect((await db.notes.get(n.id))?.dirty).toBe(1);
   expect((await db.notes.get(other.id))?.user_id).toBe('real-user');
 });
+
+test('update after seeing a version stamped in the future (skewed clock) still wins', async () => {
+  const n = await create<Note>('notes', noteData);
+  const future = new Date(Date.now() + 90_000).toISOString();
+  await db.notes.update(n.id, { updated_at: future, dirty: 0 });
+  await update<Note>('notes', n.id, { title: 'redaktim i ri' });
+  expect((await db.notes.get(n.id))!.updated_at > future).toBe(true);
+  await db.notes.update(n.id, { updated_at: new Date(Date.now() + 90_000).toISOString() });
+  const before = (await db.notes.get(n.id))!.updated_at;
+  await softDelete('notes', n.id);
+  expect((await db.notes.get(n.id))!.updated_at > before).toBe(true);
+});

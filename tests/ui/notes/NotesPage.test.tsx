@@ -88,3 +88,15 @@ test('tag filter shows only tagged notes, even when their parent is untagged', a
   await waitFor(() => expect(within(tree).queryByText('Prind')).not.toBeInTheDocument());
   expect(within(tree).getByText('Fëmijë me etiketë')).toBeInTheDocument();
 });
+
+test('typing is saved immediately when the page is hidden (app closed or switched)', async () => {
+  const n = await create<Note>('notes', { ...base, title: 'T', parent_id: null });
+  renderAt(`/notes/${n.id}`);
+  const body = await screen.findByLabelText('Përmbajtja');
+  await userEvent.type(body, 'x');
+  Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+  document.dispatchEvent(new Event('visibilitychange'));
+  Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+  await new Promise((r) => setTimeout(r, 100));
+  expect((await db.notes.get(n.id))?.content).toBe('x');
+});

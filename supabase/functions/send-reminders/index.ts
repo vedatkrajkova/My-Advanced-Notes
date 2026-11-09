@@ -1,7 +1,7 @@
 // Supabase Edge Function (Deno). Thirret çdo minutë nga pg_cron (shih docs/setup.md).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3';
-import { isGone, selectDue, type ReminderRow } from './logic.ts';
+import { isGone, selectDue, shouldMarkReminded, type ReminderRow } from './logic.ts';
 
 const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
@@ -31,20 +31,30 @@ Deno.serve(async (req) => {
   const due = selectDue(data as ReminderRow[], now);
   let sent = 0;
   for (const task of due) {
-    const { data: subs } = await supabase.from('push_subscriptions').select('id, endpoint, p256dh, auth').eq('user_id', task.user_id);
+    const { data: subs, error: subsErr } = await supabase
+      .from('push_subscriptions')
+      .select('id, endpoint, p256dh, auth')
+      .eq('user_id', task.user_id);
     const payload = JSON.stringify({ title: task.title || 'Kujtesë', taskId: task.id });
+    let delivered = 0;
+    let transientFailures = 0;
     for (const s of subs ?? []) {
       try {
         await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload);
-        sent++;
+        delivered++;
       } catch (e) {
         const status = (e as { statusCode?: number }).statusCode ?? 0;
         if (isGone(status)) await supabase.from('push_subscriptions').delete().eq('id', s.id);
-        else console.error('push failed', status, e);
+        else {
+          transientFailures++;
+          console.error('push failed', status, e);
+        }
       }
     }
-    // Shënohet edhe kur s'ka abonim, që të mos provohet çdo minutë pafundësisht.
-    await supabase.from('tasks').update({ reminded_at: now.toISOString() }).eq('id', task.id);
+    sent += delivered;
+    if (shouldMarkReminded({ subsError: Boolean(subsErr), subscriptions: subs?.length ?? 0, delivered, transientFailures })) {
+      await supabase.from('tasks').update({ reminded_at: now.toISOString() }).eq('id', task.id);
+    }
   }
 
   return Response.json({ due: due.length, sent });

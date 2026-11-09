@@ -74,3 +74,11 @@ describe('with local db', () => {
     expect((await db.notes.get(other.id))?.deleted).toBe(false);
   });
 });
+
+test('buildTree shows notes caught in a cross-device cycle instead of hiding them', () => {
+  const tree = buildTree([n('x', 'y', 'a0'), n('y', 'x', 'a1'), n('c', 'x', 'a0'), n('r', null)]);
+  const ids: string[] = [];
+  const walk = (list: typeof tree) => list.forEach((t) => { ids.push(t.id); walk(t.children); });
+  walk(tree);
+  expect(ids.sort()).toEqual(['c', 'r', 'x', 'y']);
+});

@@ -74,3 +74,8 @@ describe('addSubtask', () => {
     await expect(addSubtask(sub, 'SS')).rejects.toThrow('depth');
   });
 });
+
+test('a subtask whose parent is missing or deleted is shown as a top-level task', () => {
+  const g = keysOf([t('orphan', null, { parent_id: 'gone' }), t('p', null, { deleted: true }), t('child', null, { parent_id: 'p' })]);
+  expect(g.later.sort()).toEqual(['child', 'orphan']);
+});

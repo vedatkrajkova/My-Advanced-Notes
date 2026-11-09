@@ -3,6 +3,7 @@ import Markdown from 'react-markdown';
 import { update } from '../../db/repo';
 import type { Note } from '../../domain/types';
 import { TagPicker } from '../tags/TagPicker';
+import { useFlushOnHide } from '../useFlushOnHide';
 
 const SAVE_DELAY_MS = 500;
 
@@ -29,6 +30,8 @@ export function NoteEditor({ note, path, onDelete }: { note: Note; path: Note[];
     pending.current = {};
     if (Object.keys(patch).length) void update<Note>('notes', note.id, patch);
   }
+
+  useFlushOnHide(flush);
 
   function schedule(patch: Partial<Note>) {
     pending.current = { ...pending.current, ...patch };

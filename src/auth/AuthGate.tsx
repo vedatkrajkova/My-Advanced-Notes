@@ -14,7 +14,8 @@ export const supabaseAuth: AuthApi = {
   async getSession() {
     // Pa Supabase të konfiguruar aplikacioni punon vetëm lokalisht, pa sinkronizim.
     if (!supabase) return { userId: LOCAL_USER_ID };
-    const { data } = await supabase.auth.getSession();
+    const { data, error } = await supabase.auth.getSession();
+    if (error && !data.session) throw error; // p.sh. rifreskimi i token-it dështoi pa rrjet
     return data.session ? { userId: data.session.user.id } : null;
   },
   onChange(cb) {
@@ -47,9 +48,10 @@ export function AuthGate({ children, auth = supabaseAuth }: { children: ReactNod
   const [sent, setSent] = useState(false);
 
   useEffect(() => {
-    const apply = (s: { userId: string } | null) => {
+    // uncertain: kontrolli i sesionit dështoi (rrjet i dobët ose server i paarritshëm).
+    const apply = (s: { userId: string } | null, uncertain = false) => {
       let id = s?.userId ?? null;
-      if (!id && !navigator.onLine) id = rememberedUser();
+      if (!id && (uncertain || !navigator.onLine)) id = rememberedUser();
       if (id) {
         setCurrentUser(id);
         void adoptLocalRows(id);
@@ -61,7 +63,10 @@ export function AuthGate({ children, auth = supabaseAuth }: { children: ReactNod
       }
       setUserId(id);
     };
-    auth.getSession().then(apply, () => apply(null));
+    auth.getSession().then(
+      (s) => apply(s),
+      () => apply(null, true),
+    );
     return auth.onChange(apply);
   }, [auth]);
 

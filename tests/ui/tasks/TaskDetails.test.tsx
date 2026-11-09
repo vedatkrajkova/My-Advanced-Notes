@@ -32,3 +32,13 @@ test('clearing a reminder does not ask for permission', async () => {
   await waitFor(async () => expect((await db.tasks.get(t.id))?.remind_at).toBeNull());
   expect(subscribe).not.toHaveBeenCalled();
 });
+
+test('title being typed is saved when the page is hidden', async () => {
+  const t = await create<Task>('tasks', { ...base, title: 'A' });
+  render(<TaskDetails task={t} subtaskIds={[]} onClose={() => {}} />);
+  fireEvent.change(screen.getByLabelText('Titulli i detyrës'), { target: { value: 'AB' } });
+  Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+  document.dispatchEvent(new Event('visibilitychange'));
+  Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+  await waitFor(async () => expect((await db.tasks.get(t.id))?.title).toBe('AB'));
+});

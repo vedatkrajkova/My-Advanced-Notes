@@ -1,4 +1,4 @@
-import { selectDue, isGone } from './logic';
+import { selectDue, isGone, shouldMarkReminded } from './logic';
 
 const now = new Date('2026-11-09T10:00:00Z');
 const t = (id: string, extra: Record<string, unknown>) => ({
@@ -22,4 +22,12 @@ test('isGone is true for 404 and 410 only', () => {
   expect(isGone(410)).toBe(true);
   expect(isGone(500)).toBe(false);
   expect(isGone(201)).toBe(false);
+});
+
+test('shouldMarkReminded: only after a delivery, or when the user truly has no devices', () => {
+  expect(shouldMarkReminded({ subsError: false, subscriptions: 2, delivered: 1, transientFailures: 1 })).toBe(true);
+  expect(shouldMarkReminded({ subsError: false, subscriptions: 0, delivered: 0, transientFailures: 0 })).toBe(true);
+  expect(shouldMarkReminded({ subsError: false, subscriptions: 1, delivered: 0, transientFailures: 1 })).toBe(false);
+  expect(shouldMarkReminded({ subsError: true, subscriptions: 0, delivered: 0, transientFailures: 0 })).toBe(false);
+  expect(shouldMarkReminded({ subsError: false, subscriptions: 1, delivered: 0, transientFailures: 0 })).toBe(true);
 });

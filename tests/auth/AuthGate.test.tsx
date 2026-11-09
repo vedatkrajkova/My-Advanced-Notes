@@ -52,3 +52,17 @@ test('offline with a remembered user opens the app without a session', async () 
   await waitFor(() => expect(getCurrentUser()).toBe('u-9'));
   spy.mockRestore();
 });
+
+test('session check failing while navigator says online still opens a remembered user', async () => {
+  localStorage.setItem('last_user_id', 'u-7');
+  const auth = { ...fakeAuth(null), getSession: async () => { throw new TypeError('Failed to fetch'); } };
+  render(<AuthGate auth={auth}><p>brenda</p></AuthGate>);
+  expect(await screen.findByText('brenda')).toBeInTheDocument();
+  expect(getCurrentUser()).toBe('u-7');
+});
+
+test('session check failing with no remembered user shows the login form', async () => {
+  const auth = { ...fakeAuth(null), getSession: async () => { throw new TypeError('Failed to fetch'); } };
+  render(<AuthGate auth={auth}><p>brenda</p></AuthGate>);
+  expect(await screen.findByRole('button', { name: 'Dërgo lidhjen e hyrjes' })).toBeInTheDocument();
+});

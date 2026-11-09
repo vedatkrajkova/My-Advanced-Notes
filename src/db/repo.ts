@@ -28,6 +28,25 @@ function now(): string {
   return new Date().toISOString();
 }
 
+/**
+ * Koha e ndryshimit: gjithmonë pas versionit që po ndryshohet, edhe nëse ora e kësaj
+ * pajisjeje mbetet pas asaj të pajisjes tjetër. Përndryshe redaktimi më i ri humbet (LWW).
+ */
+function stampAfter(previous: string | undefined): string {
+  const t = Date.now();
+  const prev = previous ? Date.parse(previous) : NaN;
+  return new Date(Number.isNaN(prev) || t > prev ? t : prev + 1).toISOString();
+}
+
+async function stampRow(name: TableName, id: string, patch: Record<string, unknown>): Promise<void> {
+  const t = db.table(name);
+  await db.transaction('rw', t, async () => {
+    const cur = (await t.get(id)) as { updated_at?: string } | undefined;
+    if (!cur) return;
+    await t.update(id, { ...patch, updated_at: stampAfter(cur.updated_at), dirty: 1 });
+  });
+}
+
 function table<T extends TableName>(name: T) {
   return db.table<RowTypes[T], string>(name);
 }
@@ -56,20 +75,17 @@ export async function update<T extends BaseRow>(
   id: string,
   patch: Partial<Omit<T, keyof BaseRow>>,
 ): Promise<void> {
-  await db.table(name).update(id, { ...patch, updated_at: now(), dirty: 1 });
+  await stampRow(name, id, patch as Record<string, unknown>);
   notifyWrite();
 }
 
 export async function softDelete(name: TableName, id: string): Promise<void> {
-  await db.table(name).update(id, { deleted: true, updated_at: now(), dirty: 1 });
+  await stampRow(name, id, { deleted: true });
   notifyWrite();
 }
 
 export async function softDeleteMany(name: TableName, ids: string[]): Promise<void> {
-  const ts = now();
-  await db.transaction('rw', db.table(name), async () => {
-    for (const id of ids) await db.table(name).update(id, { deleted: true, updated_at: ts, dirty: 1 });
-  });
+  for (const id of ids) await stampRow(name, id, { deleted: true });
   notifyWrite();
 }
 

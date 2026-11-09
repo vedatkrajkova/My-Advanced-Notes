@@ -23,6 +23,25 @@ export function buildTree(notes: Note[]): TreeNode[] {
     const parent = node.parent_id ? byId.get(node.parent_id) : undefined;
     (parent ? parent.children : roots).push(node);
   }
+  // Një cikël mes pajisjesh (X nën Y në njërën, Y nën X në tjetrën) nuk arrihet nga rrënja:
+  // nyja e parë e paarritur nxirret në rrënjë, që asgjë të mos zhduket.
+  const reached = new Set<string>();
+  const mark = (list: TreeNode[]) => {
+    for (const node of list) {
+      if (reached.has(node.id)) continue;
+      reached.add(node.id);
+      mark(node.children);
+    }
+  };
+  mark(roots);
+  for (const node of [...byId.values()].sort(compareSiblings)) {
+    if (reached.has(node.id)) continue;
+    const parent = node.parent_id ? byId.get(node.parent_id) : undefined;
+    if (parent) parent.children = parent.children.filter((c) => c.id !== node.id);
+    roots.push(node);
+    mark([node]);
+  }
+
   const sortAll = (list: TreeNode[]) => {
     list.sort(compareSiblings);
     list.forEach((c) => sortAll(c.children));

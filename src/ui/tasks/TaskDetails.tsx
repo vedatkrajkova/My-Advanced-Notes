@@ -4,6 +4,7 @@ import { addSubtask } from '../../domain/taskGroups';
 import type { Priority, Task } from '../../domain/types';
 import { subscribeToPush } from '../../push/subscribe';
 import { TagPicker } from '../tags/TagPicker';
+import { useFlushOnHide } from '../useFlushOnHide';
 
 export const PRIORITY_LABELS: Record<Priority, string> = { low: 'I ulët', medium: 'Mesatar', high: 'I lartë' };
 
@@ -35,6 +36,14 @@ export function TaskDetails({ task, subtaskIds, onClose }: { task: Task; subtask
   const [pushNote, setPushNote] = useState('');
 
   const save = (patch: Partial<Task>) => void update<Task>('tasks', task.id, patch);
+
+  // Titulli dhe përshkrimi ruhen kur del nga fusha, ose kur faqja fshihet/mbyllet.
+  useFlushOnHide(() => {
+    const patch: Partial<Task> = {};
+    if (title !== task.title) patch.title = title;
+    if (description !== task.description) patch.description = description;
+    if (Object.keys(patch).length) save(patch);
+  });
 
   async function setReminder(value: string) {
     const remind_at = value ? new Date(value).toISOString() : null;

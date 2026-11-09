@@ -147,3 +147,14 @@ test('push never sends reminded_at (server owns it)', async () => {
   await pushDirty(remote);
   expect('reminded_at' in remote.upserted[0]).toBe(false);
 });
+
+test('pull re-reads an overlap window so a row committed late with an older server_updated_at is not skipped', async () => {
+  remote.putFromOtherDevice({ id: 'a', user_id: 'u', created_at: '', updated_at: '2026-01-10T00:00:00.000Z', deleted: false, ...noteData } as Note);
+  await pullChanges(remote);
+  const cursor = (await db.meta.get('cursor:notes'))!.value;
+  // Rresht që u stampua para kursorit, por u bë commit pas marrjes.
+  const earlier = new Date(Date.parse(cursor) - 5_000).toISOString();
+  remote.rows.set('late', { id: 'late', user_id: 'u', created_at: '', updated_at: '2026-01-09T00:00:00.000Z', deleted: false, ...noteData, title: 'vonë', server_updated_at: earlier } as unknown as RemoteRow);
+  await pullChanges(remote);
+  expect((await db.notes.get('late'))?.title).toBe('vonë');
+});
