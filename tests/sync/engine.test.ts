@@ -94,7 +94,7 @@ test('two offline edits of the same row: later updated_at wins on both sides, on
   remote.putFromOtherDevice({ ...(await db.notes.get(a.id))!, title: 'telefon', updated_at: '2026-01-05T09:00:00.000Z' });
   await syncNow(remote);
   expect((await db.notes.get(a.id))?.title).toBe('PC');
-  expect(remote.rows.get(a.id)?.title).toBe('PC');
+  expect((remote.rows.get(a.id) as unknown as Note)?.title).toBe('PC');
   expect(await db.notes.count()).toBe(1);
   expect(remote.rows.size).toBe(1);
 });
