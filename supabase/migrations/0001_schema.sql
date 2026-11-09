@@ -9,6 +9,16 @@ begin
   return new;
 end $$;
 
+-- "Fiton më i vonshmi" edhe në server: një përditësim me updated_at më të vjetër anashkalohet.
+create or replace function public.keep_newer_row() returns trigger
+language plpgsql as $$
+begin
+  if new.updated_at < old.updated_at then
+    return null;
+  end if;
+  return new;
+end $$;
+
 create table public.notes (
   id uuid primary key,
   user_id uuid not null default auth.uid(),
@@ -102,6 +112,8 @@ begin
     execute format('create index %1$s_user_sync_idx on public.%1$I (user_id, server_updated_at)', t);
     execute format('create trigger %1$s_server_updated_at before insert or update on public.%1$I
                     for each row execute function public.set_server_updated_at()', t);
+    execute format('create trigger %1$s_keep_newer before update on public.%1$I
+                    for each row execute function public.keep_newer_row()', t);
     execute format('alter publication supabase_realtime add table public.%I', t);
   end loop;
 

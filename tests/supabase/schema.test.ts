@@ -65,3 +65,18 @@ test('server_updated_at is set by the server on insert and update', async () => 
   const r = await pg.query<{ s: Date }>(`select server_updated_at as s from tags where id = '${id}'`);
   expect(r.rows[0].s.getFullYear()).toBeGreaterThan(2000);
 });
+
+test('upsert with an older updated_at does not overwrite a newer row', async () => {
+  await as(A);
+  const id = '22222222-2222-2222-2222-222222222222';
+  const up = (title: string, ts: string) => pg.query(
+    `insert into notes (id, title, sort_key, updated_at) values ('${id}', '${title}', 'a0', '${ts}')
+     on conflict (id) do update set title = excluded.title, updated_at = excluded.updated_at`);
+  await up('i ri', '2026-01-05T10:00:00Z');
+  await up('i vjetër', '2026-01-05T09:00:00Z');
+  const r = await pg.query<{ title: string }>(`select title from notes where id = '${id}'`);
+  expect(r.rows[0].title).toBe('i ri');
+  await up('më i ri', '2026-01-05T11:00:00Z');
+  const r2 = await pg.query<{ title: string }>(`select title from notes where id = '${id}'`);
+  expect(r2.rows[0].title).toBe('më i ri');
+});
